@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func
@@ -17,7 +18,13 @@ Base.metadata.create_all(bind=engine)
 BASE_DIR = Path(__file__).resolve().parent
 
 app = FastAPI(title="Spendly - Expense Tracker API")
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # -------------------------------
 # Pydantic Models
