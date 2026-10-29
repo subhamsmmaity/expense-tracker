@@ -42,12 +42,12 @@ class ExpenseOut(ExpenseCreate):
 
 @app.get("/", include_in_schema=False)
 def home():
-    index_file = BASE_DIR / "static" / "index.html"
+    index_file = BASE_DIR / "index.html"
 
     if not index_file.exists():
         raise HTTPException(
             status_code=404,
-            detail="index.html was not found in the static folder"
+            detail="index.html was not found in the root folder"
         )
 
     return FileResponse(index_file)
