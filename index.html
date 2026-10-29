@@ -1,0 +1,495 @@
+
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinPulse - Modern Expense Tracker</title>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Tailwind Custom Configuration -->
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          brand: {
+            50: '#eef2ff',
+            100: '#e0e7ff',
+            500: '#6366f1',
+            600: '#4f46e5',
+            700: '#4338ca',
+            900: '#312e81',
+          }
+        },
+        fontFamily: {
+          sans: ['Inter', 'sans-serif']
+        }
+      }
+    }
+  }
+</script>
+<!-- Google Fonts Inter -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- FontAwesome Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Chart.js for Visual Breakdown -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body { font-family: 'Inter', sans-serif; }
+  /* Custom scrollbar for sleek look */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #f1f5f9; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-full flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Custom Notification / Message Modal (No alert() used) -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/30">
+          <i class="fa-solid fa-wallet text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-slate-900 tracking-tight">FinPulse India</h1>
+          <p class="text-xs text-slate-500 font-medium">Smart Rupee Expense Dashboard</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <div class="hidden sm:flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600">
+          <i class="fa-regular fa-calendar text-brand-600"></i>
+          <span id="current-date-badge">Today</span>
+        </div>
+        <div class="w-9 h-9 rounded-full bg-slate-200 border-2 border-white shadow-xs flex items-center justify-center text-slate-700 font-bold text-sm">
+          U
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+    
+    <!-- Left Column: Add Expense & Quick Stats -->
+    <div class="lg:col-span-4 space-y-6">
+      
+      <!-- Add Expense Card -->
+      <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-6 relative overflow-hidden">
+        <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-brand-600 to-indigo-400"></div>
+        <div class="flex items-center justify-between mb-5">
+          <h2 class="font-semibold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-circle-plus text-brand-600"></i> Add Expense
+          </h2>
+          <span class="text-xs text-slate-400 font-medium">New Record</span>
+        </div>
+        
+        <form onsubmit="event.preventDefault(); addExpense();" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Title</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <i class="fa-solid fa-tag text-xs"></i>
+              </span>
+              <input id="title" required placeholder="e.g. Swiggy Lunch" class="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 transition-all">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Amount (₹)</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold text-xs">
+                ₹
+              </span>
+              <input id="amount" type="number" step="1" min="1" required placeholder="450" class="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 transition-all">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Category</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <i class="fa-solid fa-folder text-xs"></i>
+              </span>
+              <input id="category" required placeholder="e.g. Food, Travel, Utilities" class="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 transition-all">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Date</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <i class="fa-regular fa-calendar text-xs"></i>
+              </span>
+              <input id="date" type="date" required class="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 transition-all">
+            </div>
+          </div>
+
+          <button type="submit" class="w-full mt-2 py-3 px-4 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-md shadow-indigo-500/25 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]">
+            <i class="fa-solid fa-plus text-xs"></i> Add Expense
+          </button>
+        </form>
+      </div>
+
+      <!-- Monthly Summary & Visual Card -->
+      <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="font-semibold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie text-brand-600"></i> Monthly Analytics
+          </h2>
+        </div>
+
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Select Month</label>
+            <input id="month" type="month" onchange="loadSummary()" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 transition-all">
+          </div>
+          <button onclick="loadSummary()" class="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm rounded-xl shadow-xs transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-rotate text-xs"></i> Update Summary
+          </button>
+        </div>
+
+        <!-- Summary Output Area -->
+        <div class="pt-2 border-t border-slate-100">
+          <div id="summary-metrics" class="grid grid-cols-2 gap-3 mb-4">
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <span class="text-xs text-slate-500 block font-medium">Total Spent</span>
+              <span id="summary-total" class="text-base font-bold text-slate-900">₹0</span>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <span class="text-xs text-slate-500 block font-medium">Categories</span>
+              <span id="summary-cat-count" class="text-base font-bold text-brand-600">0</span>
+            </div>
+          </div>
+          <!-- Chart Canvas for Visual Breakdown -->
+          <div class="relative w-full h-48 flex items-center justify-center">
+            <canvas id="categoryChart"></canvas>
+            <div id="chart-empty-state" class="absolute inset-0 flex items-center justify-center text-xs text-slate-400 font-medium bg-white/80 backdrop-blur-xs">
+              No data for selected month
+            </div>
+          </div>
+          <!-- Raw pre backup / details toggle if needed -->
+          <pre id="summary" class="hidden"></pre>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Transactions List & Filtering -->
+    <div class="lg:col-span-8 space-y-6">
+      
+      <div class="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 class="font-semibold text-slate-900 text-lg flex items-center gap-2">
+              <i class="fa-solid fa-receipt text-brand-600"></i> Transactions
+            </h2>
+            <p class="text-xs text-slate-500">Manage and filter all your recorded expenses in ₹</p>
+          </div>
+          
+          <!-- Filter input -->
+          <div class="relative w-full sm:w-64">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <i class="fa-solid fa-filter text-xs"></i>
+            </span>
+            <input id="filter" placeholder="Filter by category (e.g. food)..." oninput="loadExpenses()" class="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 transition-all">
+          </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="overflow-x-auto rounded-xl border border-slate-100">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50/70 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th class="py-3 px-4">Title</th>
+                <th class="py-3 px-4">Amount</th>
+                <th class="py-3 px-4">Category</th>
+                <th class="py-3 px-4">Date</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="list" class="divide-y divide-slate-100 text-sm text-slate-700 bg-white">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Empty State for Table -->
+        <div id="table-empty" class="hidden py-12 text-center">
+          <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400 mb-3">
+            <i class="fa-solid fa-folder-open text-lg"></i>
+          </div>
+          <p class="text-sm font-medium text-slate-600">No expenses found</p>
+          <p class="text-xs text-slate-400 mt-1">Try adding a new expense or clear your category filter.</p>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-auto py-6 border-t border-slate-200 bg-white text-center text-xs text-slate-500">
+    <p>&copy; 2026 FinPulse India. All original API endpoints and functionality preserved.</p>
+  </footer>
+
+  <!-- Application Script -->
+  <script>
+    // Set default values on load
+    document.getElementById("date").valueAsDate = new Date();
+    const currentMonthStr = new Date().toISOString().slice(0, 7);
+    document.getElementById("month").value = currentMonthStr;
+
+    // Format current date badge
+    const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+    document.getElementById("current-date-badge").textContent = new Date().toLocaleDateString('en-IN', options);
+
+    // Chart.js instance variable
+    let categoryChartInstance = null;
+
+    // Custom Toast Notification System (replaces alert())
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      const bgColor = type === 'success' ? 'bg-slate-900 text-white' : 'bg-red-600 text-white';
+      const icon = type === 'success' ? 'fa-circle-check text-emerald-400' : 'fa-circle-exclamation text-white';
+      
+      toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg ${bgColor} text-sm font-medium transition-all duration-300 transform translate-y-2 opacity-0`;
+      toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+      
+      container.appendChild(toast);
+      
+      // Animate in
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      // Remove after 3 seconds
+      setTimeout(() => {
+        toast.classList.add('translate-y-2', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Format currency to Indian Number format (e.g. ₹1,24,500)
+    function formatINR(amount) {
+      return "₹" + Number(amount).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    }
+
+    // Load Expenses function (preserving original API endpoints)
+    async function loadExpenses() {
+      try {
+        const cat = document.getElementById("filter").value.trim();
+        const url = cat ? "/expenses?category=" + encodeURIComponent(cat) : "/expenses";
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        const list = document.getElementById("list");
+        const emptyState = document.getElementById("table-empty");
+        list.innerHTML = "";
+
+        if (!data || data.length === 0) {
+          emptyState.classList.remove('hidden');
+        } else {
+          emptyState.classList.add('hidden');
+          data.forEach(e => {
+            const tr = document.createElement("tr");
+            tr.className = "hover:bg-slate-50/80 transition-colors";
+            
+            // Title
+            const tdTitle = document.createElement("td");
+            tdTitle.className = "py-3.5 px-4 font-medium text-slate-900";
+            tdTitle.textContent = e.title;
+            tr.appendChild(tdTitle);
+
+            // Amount
+            const tdAmount = document.createElement("td");
+            tdAmount.className = "py-3.5 px-4 font-semibold text-slate-900";
+            tdAmount.textContent = formatINR(e.amount);
+            tr.appendChild(tdAmount);
+
+            // Category badge
+            const tdCat = document.createElement("td");
+            tdCat.className = "py-3.5 px-4";
+            const badge = document.createElement("span");
+            badge.className = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-brand-700 border border-indigo-100";
+            badge.textContent = e.category;
+            tdCat.appendChild(badge);
+            tr.appendChild(tdCat);
+
+            // Date
+            const tdDate = document.createElement("td");
+            tdDate.className = "py-3.5 px-4 text-slate-500 text-xs";
+            tdDate.textContent = e.date;
+            tr.appendChild(tdDate);
+
+            // Actions (Delete button)
+            const tdAction = document.createElement("td");
+            tdAction.className = "py-3.5 px-4 text-right";
+            const btn = document.createElement("button");
+            btn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+            btn.className = "del text-slate-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-all cursor-pointer";
+            btn.title = "Delete Expense";
+            btn.onclick = () => deleteExpense(e.id);
+            tdAction.appendChild(btn);
+            tr.appendChild(tdAction);
+
+            list.appendChild(tr);
+          });
+        }
+      } catch (err) {
+        console.error("Error loading expenses:", err);
+      }
+    }
+
+    // Add Expense function (preserving original API endpoints)
+    async function addExpense() {
+      const body = {
+        title: document.getElementById("title").value.trim(),
+        amount: parseFloat(document.getElementById("amount").value),
+        category: document.getElementById("category").value.trim(),
+        date: document.getElementById("date").value
+      };
+
+      if (!body.title || !body.category || !(body.amount > 0) || !body.date) {
+        showToast("Please fill all fields correctly", "error");
+        return;
+      }
+
+      try {
+        const res = await fetch("/expenses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+          document.getElementById("title").value = "";
+          document.getElementById("amount").value = "";
+          document.getElementById("category").value = "";
+          document.getElementById("date").valueAsDate = new Date();
+          showToast("Expense added successfully!");
+          loadExpenses();
+          loadSummary();
+        } else {
+          showToast("Could not add expense", "error");
+        }
+      } catch (err) {
+        showToast("Network error while adding expense", "error");
+      }
+    }
+
+    // Delete Expense function (preserving original API endpoints)
+    async function deleteExpense(id) {
+      try {
+        await fetch("/expenses/" + id, { method: "DELETE" });
+        showToast("Expense deleted");
+        loadExpenses();
+        loadSummary();
+      } catch (err) {
+        showToast("Could not delete expense", "error");
+      }
+    }
+
+    // Load Summary function (preserving original API endpoints & updating chart visualization)
+    async function loadSummary() {
+      try {
+        const monthVal = document.getElementById("month").value;
+        if (!monthVal) return;
+        const [y, m] = monthVal.split("-");
+        const res = await fetch(`/summary/${parseInt(y)}/${parseInt(m)}`);
+        const s = await res.json();
+
+        // Update metrics display with INR formatting
+        document.getElementById("summary-total").textContent = formatINR(s.total || 0);
+        const categories = s.by_category ? Object.entries(s.by_category) : [];
+        document.getElementById("summary-cat-count").textContent = categories.length;
+
+        // Legacy text backup format support
+        let text = "Total: " + s.total + "\n";
+        for (const [c, t] of categories) {
+          text += c + ": " + t + "\n";
+        }
+        document.getElementById("summary").textContent = text;
+
+        // Render Chart.js breakdown
+        renderCategoryChart(categories);
+      } catch (err) {
+        console.error("Error loading summary:", err);
+      }
+    }
+
+    // Render visual donut breakdown chart
+    function renderCategoryChart(categories) {
+      const ctx = document.getElementById("categoryChart").getContext("2d");
+      const emptyState = document.getElementById("chart-empty-state");
+
+      if (categories.length === 0) {
+        emptyState.classList.remove('hidden');
+        if (categoryChartInstance) {
+          categoryChartInstance.destroy();
+          categoryChartInstance = null;
+        }
+        return;
+      } else {
+        emptyState.classList.add('hidden');
+      }
+
+      const labels = categories.map(item => item[0]);
+      const dataValues = categories.map(item => item[1]);
+
+      const colors = [
+        '#6366f1', '#ec4899', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#64748b'
+      ];
+
+      if (categoryChartInstance) {
+        categoryChartInstance.data.labels = labels;
+        categoryChartInstance.data.datasets[0].data = dataValues;
+        categoryChartInstance.update();
+      } else {
+        categoryChartInstance = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: dataValues,
+              backgroundColor: colors.slice(0, labels.length),
+              borderWidth: 2,
+              borderColor: '#ffffff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  boxWidth: 12,
+                  font: { size: 11, family: 'Inter' },
+                  color: '#475569'
+                }
+              }
+            },
+            cutout: '65%'
+          }
+        });
+      }
+    }
+
+    // Initial load calls
+    loadExpenses();
+    loadSummary();
+  </script>
+</body>
+</html>
+```
