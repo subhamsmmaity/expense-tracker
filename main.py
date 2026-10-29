@@ -8,9 +8,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from .database import Base, engine, get_db
-from .models import Expense
-
+from database import Base, engine, get_db
+from models import Expense
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
